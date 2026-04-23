@@ -1,0 +1,117 @@
+{% extends "base.html" %}
+{% block title %}Dashboard — ResearchVault{% endblock %}
+{% block content %}
+
+<div class="page-hero">
+  <div class="hero-content">
+    <p class="hero-eyebrow">Faculty Research Publication Management</p>
+    <h1 class="hero-title">ResearchVault</h1>
+    <p class="hero-sub">Store, manage, and explore faculty publications with precision.</p>
+  </div>
+  <div class="hero-accent"></div>
+</div>
+
+<div class="container">
+
+  <!-- Stats Row -->
+  <div class="stats-grid" id="statsGrid">
+    <div class="stat-card" data-key="total_faculty">
+      <div class="stat-icon">👨‍🏫</div>
+      <div class="stat-value" id="stat-faculty">—</div>
+      <div class="stat-label">Faculty Members</div>
+    </div>
+    <div class="stat-card accent" data-key="total_publications">
+      <div class="stat-icon">📄</div>
+      <div class="stat-value" id="stat-pubs">—</div>
+      <div class="stat-label">Total Publications</div>
+    </div>
+    <div class="stat-card" data-key="journals">
+      <div class="stat-icon">📰</div>
+      <div class="stat-value" id="stat-journals">—</div>
+      <div class="stat-label">Journal Articles</div>
+    </div>
+    <div class="stat-card" data-key="conferences">
+      <div class="stat-icon">🎙️</div>
+      <div class="stat-value" id="stat-conf">—</div>
+      <div class="stat-label">Conference Papers</div>
+    </div>
+    <div class="stat-card" data-key="book_chapters">
+      <div class="stat-icon">📖</div>
+      <div class="stat-value" id="stat-bc">—</div>
+      <div class="stat-label">Book Chapters</div>
+    </div>
+    <div class="stat-card" data-key="books">
+      <div class="stat-icon">📚</div>
+      <div class="stat-value" id="stat-books">—</div>
+      <div class="stat-label">Books</div>
+    </div>
+  </div>
+
+  <!-- Quick Actions -->
+  <div class="section-header">
+    <h2 class="section-title">Quick Actions</h2>
+  </div>
+  <div class="quick-actions">
+    <a href="/faculty" class="action-card">
+      <div class="action-icon">👤</div>
+      <div class="action-body">
+        <h3>Manage Faculty</h3>
+        <p>Add or view faculty member profiles and details.</p>
+      </div>
+      <span class="action-arrow">→</span>
+    </a>
+    <a href="/add" class="action-card accent">
+      <div class="action-icon">➕</div>
+      <div class="action-body">
+        <h3>Add Publication</h3>
+        <p>Record a new journal, conference, book chapter or book.</p>
+      </div>
+      <span class="action-arrow">→</span>
+    </a>
+    <a href="/view" class="action-card">
+      <div class="action-icon">🔍</div>
+      <div class="action-body">
+        <h3>Browse Publications</h3>
+        <p>Search, filter and explore all research publications.</p>
+      </div>
+      <span class="action-arrow">→</span>
+    </a>
+  </div>
+
+  <!-- Recent Publications -->
+  <div class="section-header">
+    <h2 class="section-title">Recent Publications</h2>
+    <a href="/view" class="section-link">View all →</a>
+  </div>
+  <div id="recentPubs" class="pub-list">
+    <div class="loading-state">Loading publications…</div>
+  </div>
+
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+async function loadDashboard() {
+  const stats = await apiFetch('/api/stats');
+  if (stats) {
+    document.getElementById('stat-faculty').textContent = stats.total_faculty;
+    document.getElementById('stat-pubs').textContent = stats.total_publications;
+    document.getElementById('stat-journals').textContent = stats.journals;
+    document.getElementById('stat-conf').textContent = stats.conferences;
+    document.getElementById('stat-bc').textContent = stats.book_chapters;
+    document.getElementById('stat-books').textContent = stats.books;
+  }
+
+  const pubs = await apiFetch('/api/publications');
+  const container = document.getElementById('recentPubs');
+  if (pubs && pubs.length > 0) {
+    container.innerHTML = pubs.slice(0, 6).map(p => renderPubCard(p)).join('');
+  } else {
+    container.innerHTML = '<div class="empty-state"><span>📭</span><p>No publications yet. <a href="/add">Add the first one →</a></p></div>';
+  }
+}
+
+loadDashboard();
+</script>
+{% endblock %}

@@ -1,0 +1,169 @@
+{% extends "base.html" %}
+{% block title %}Add Publication — ResearchVault{% endblock %}
+{% block content %}
+
+<div class="page-header">
+  <div class="container">
+    <h1 class="page-title">Add Publication</h1>
+    <p class="page-sub">Record a new research publication for a faculty member.</p>
+  </div>
+</div>
+
+<div class="container">
+  <div class="card card-wide">
+    <form id="pubForm" class="form-grid">
+
+      <!-- Faculty -->
+      <div class="form-group form-full">
+        <h3 class="form-section-title">👨‍🏫 Faculty Information</h3>
+      </div>
+      <div class="form-group form-full">
+        <label>Select Faculty Member <span class="req">*</span></label>
+        <select id="pfaculty" required>
+          <option value="">Choose faculty…</option>
+        </select>
+        <p class="form-hint">Faculty not listed? <a href="/faculty">Add them first →</a></p>
+      </div>
+
+      <!-- Publication Type -->
+      <div class="form-group form-full">
+        <h3 class="form-section-title">📄 Publication Details</h3>
+      </div>
+      <div class="form-group form-full">
+        <label>Publication Type <span class="req">*</span></label>
+        <div class="type-selector">
+          <label class="type-option" data-val="journal">
+            <input type="radio" name="pub_type" value="journal"> 
+            <span class="type-label"><span class="type-icon">📰</span> Journal Article</span>
+          </label>
+          <label class="type-option" data-val="conference">
+            <input type="radio" name="pub_type" value="conference">
+            <span class="type-label"><span class="type-icon">🎙️</span> Conference Paper</span>
+          </label>
+          <label class="type-option" data-val="book_chapter">
+            <input type="radio" name="pub_type" value="book_chapter">
+            <span class="type-label"><span class="type-icon">📖</span> Book Chapter</span>
+          </label>
+          <label class="type-option" data-val="book">
+            <input type="radio" name="pub_type" value="book">
+            <span class="type-label"><span class="type-icon">📚</span> Book</span>
+          </label>
+        </div>
+      </div>
+
+      <div class="form-group form-full">
+        <label>Publication Title <span class="req">*</span></label>
+        <input type="text" id="ptitle" placeholder="Enter the full title of the publication…" required>
+      </div>
+
+      <div class="form-group form-full">
+        <label id="pubNameLabel">Journal / Conference / Book Name <span class="req">*</span></label>
+        <input type="text" id="ppubname" placeholder="e.g. IEEE Transactions on Neural Networks…" required>
+      </div>
+
+      <div class="form-group">
+        <label id="issnLabel">ISSN / ISBN Number</label>
+        <input type="text" id="pissn" placeholder="e.g. 1234-5678">
+      </div>
+
+      <div class="form-group">
+        <label>DOI (optional)</label>
+        <input type="text" id="pdoi" placeholder="e.g. 10.1234/example.2024">
+      </div>
+
+      <div class="form-group">
+        <label>Publication Year <span class="req">*</span></label>
+        <input type="number" id="pyear" min="1950" max="2030" placeholder="2024" required>
+      </div>
+
+      <div class="form-group">
+        <label>Publication Month <span class="req">*</span></label>
+        <select id="pmonth" required>
+          <option value="">Select month…</option>
+          <option>January</option><option>February</option><option>March</option>
+          <option>April</option><option>May</option><option>June</option>
+          <option>July</option><option>August</option><option>September</option>
+          <option>October</option><option>November</option><option>December</option>
+        </select>
+      </div>
+
+      <div class="form-group form-full">
+        <button type="submit" class="btn btn-primary btn-lg">Save Publication</button>
+      </div>
+
+    </form>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+async function loadFacultyOptions() {
+  const faculty = await apiFetch('/api/faculty');
+  const sel = document.getElementById('pfaculty');
+  if (faculty && faculty.length > 0) {
+    faculty.forEach(f => {
+      const opt = document.createElement('option');
+      opt.value = f.id;
+      opt.textContent = `${f.name} — ${f.designation}, ${f.department}`;
+      sel.appendChild(opt);
+    });
+  }
+}
+
+// Type selector interactivity
+const typeOptions = document.querySelectorAll('.type-option');
+typeOptions.forEach(opt => {
+  opt.addEventListener('click', () => {
+    typeOptions.forEach(o => o.classList.remove('selected'));
+    opt.classList.add('selected');
+    const val = opt.dataset.val;
+    const nameLabel = document.getElementById('pubNameLabel');
+    const issnLabel = document.getElementById('issnLabel');
+    if (val === 'journal') {
+      nameLabel.innerHTML = 'Journal Name <span class="req">*</span>';
+      issnLabel.textContent = 'ISSN Number';
+    } else if (val === 'conference') {
+      nameLabel.innerHTML = 'Conference Name <span class="req">*</span>';
+      issnLabel.textContent = 'ISSN Number';
+    } else if (val === 'book_chapter') {
+      nameLabel.innerHTML = 'Book Title <span class="req">*</span>';
+      issnLabel.textContent = 'ISBN Number';
+    } else {
+      nameLabel.innerHTML = 'Book Title / Publisher <span class="req">*</span>';
+      issnLabel.textContent = 'ISBN Number';
+    }
+  });
+});
+
+document.getElementById('pubForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const typeEl = document.querySelector('input[name="pub_type"]:checked');
+  if (!typeEl) { showToast('Please select a publication type.', 'error'); return; }
+
+  const data = {
+    faculty_id: document.getElementById('pfaculty').value,
+    pub_type: typeEl.value,
+    title: document.getElementById('ptitle').value.trim(),
+    publication_name: document.getElementById('ppubname').value.trim(),
+    issn_isbn: document.getElementById('pissn').value.trim(),
+    doi: document.getElementById('pdoi').value.trim(),
+    pub_year: document.getElementById('pyear').value,
+    pub_month: document.getElementById('pmonth').value
+  };
+
+  if (!data.faculty_id) { showToast('Please select a faculty member.', 'error'); return; }
+
+  const res = await apiFetch('/api/publications', { method: 'POST', body: JSON.stringify(data) });
+  if (res && res.success) {
+    showToast(res.message, 'success');
+    e.target.reset();
+    typeOptions.forEach(o => o.classList.remove('selected'));
+  } else if (res && res.error) {
+    showToast(res.error, 'error');
+  }
+});
+
+loadFacultyOptions();
+</script>
+{% endblock %}

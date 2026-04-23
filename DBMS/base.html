@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}ResearchVault{% endblock %}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+  {% block extra_css %}{% endblock %}
+</head>
+<body>
+
+  <nav class="navbar">
+    <div class="nav-inner">
+      <a href="/" class="nav-logo">
+        <span class="logo-icon">⬡</span>
+        <span>ResearchVault</span>
+      </a>
+      <button class="nav-toggle" onclick="toggleNav()">☰</button>
+      <div class="nav-links" id="navLinks">
+        <a href="/" class="nav-link {% if request.path == '/' %}active{% endif %}">Dashboard</a>
+        <a href="/faculty" class="nav-link {% if request.path == '/faculty' %}active{% endif %}">Faculty</a>
+        <a href="/add" class="nav-link {% if request.path == '/add' %}active{% endif %}">Add Publication</a>
+        <a href="/view" class="nav-link {% if request.path == '/view' %}active{% endif %}">Browse</a>
+      </div>
+    </div>
+  </nav>
+
+  <main class="main-content">
+    {% block content %}{% endblock %}
+  </main>
+
+  <footer class="footer">
+    <p>ResearchVault &copy; 2024 &mdash; Faculty Research Publication Management System</p>
+  </footer>
+
+  <div class="toast" id="toast"></div>
+
+  <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+  {% block extra_js %}{% endblock %}
+</body>
+</html>

@@ -1,0 +1,119 @@
+{% extends "base.html" %}
+{% block title %}Browse Publications — ResearchVault{% endblock %}
+{% block content %}
+
+<div class="page-header">
+  <div class="container">
+    <h1 class="page-title">Browse Publications</h1>
+    <p class="page-sub">Search, filter, and explore all faculty research publications.</p>
+  </div>
+</div>
+
+<div class="container">
+
+  <!-- Filters -->
+  <div class="filter-bar">
+    <div class="search-wrap">
+      <span class="search-icon">🔍</span>
+      <input type="text" id="searchInput" placeholder="Search by title, faculty, or venue…" oninput="debounceLoad()">
+    </div>
+    <div class="filter-row">
+      <select id="filterFaculty" onchange="loadPubs()">
+        <option value="">All Faculty</option>
+      </select>
+      <select id="filterType" onchange="loadPubs()">
+        <option value="">All Types</option>
+        <option value="journal">📰 Journal</option>
+        <option value="conference">🎙️ Conference</option>
+        <option value="book_chapter">📖 Book Chapter</option>
+        <option value="book">📚 Book</option>
+      </select>
+      <select id="filterYear" onchange="loadPubs()">
+        <option value="">All Years</option>
+      </select>
+      <button class="btn btn-ghost" onclick="clearFilters()">Clear</button>
+    </div>
+  </div>
+
+  <!-- Results Info -->
+  <div class="results-bar">
+    <span id="resultsCount" class="results-count">Loading…</span>
+  </div>
+
+  <!-- Publication List -->
+  <div id="pubList" class="pub-list">
+    <div class="loading-state">Loading publications…</div>
+  </div>
+
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let debounceTimer;
+function debounceLoad() {
+  clearTimeout(debounceTimer);
+  debounceTimer = setTimeout(loadPubs, 300);
+}
+
+async function loadPubs() {
+  const params = new URLSearchParams();
+  const search = document.getElementById('searchInput').value.trim();
+  const faculty = document.getElementById('filterFaculty').value;
+  const type = document.getElementById('filterType').value;
+  const year = document.getElementById('filterYear').value;
+
+  if (search) params.set('search', search);
+  if (faculty) params.set('faculty_id', faculty);
+  if (type) params.set('pub_type', type);
+  if (year) params.set('year', year);
+
+  const pubs = await apiFetch('/api/publications?' + params.toString());
+  const container = document.getElementById('pubList');
+  const countEl = document.getElementById('resultsCount');
+
+  if (!pubs) { countEl.textContent = 'Error loading.'; return; }
+
+  countEl.textContent = `${pubs.length} publication${pubs.length !== 1 ? 's' : ''} found`;
+
+  if (pubs.length === 0) {
+    container.innerHTML = '<div class="empty-state"><span>📭</span><p>No publications match your filters.</p></div>';
+    return;
+  }
+  container.innerHTML = pubs.map(p => renderPubCard(p, true)).join('');
+}
+
+async function loadFilters() {
+  const faculty = await apiFetch('/api/faculty');
+  const sel = document.getElementById('filterFaculty');
+  if (faculty) faculty.forEach(f => {
+    const o = document.createElement('option');
+    o.value = f.id; o.textContent = f.name; sel.appendChild(o);
+  });
+
+  const stats = await apiFetch('/api/stats');
+  const ySel = document.getElementById('filterYear');
+  if (stats && stats.years) stats.years.forEach(y => {
+    const o = document.createElement('option');
+    o.value = y; o.textContent = y; ySel.appendChild(o);
+  });
+}
+
+function clearFilters() {
+  document.getElementById('searchInput').value = '';
+  document.getElementById('filterFaculty').value = '';
+  document.getElementById('filterType').value = '';
+  document.getElementById('filterYear').value = '';
+  loadPubs();
+}
+
+window.deletePub = async function(id) {
+  if (!confirm('Delete this publication?')) return;
+  const res = await apiFetch(`/api/publications/${id}`, { method: 'DELETE' });
+  if (res && res.success) { showToast('Publication deleted.', 'success'); loadPubs(); }
+};
+
+loadFilters();
+loadPubs();
+</script>
+{% endblock %}

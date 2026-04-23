@@ -1,0 +1,118 @@
+{% extends "base.html" %}
+{% block title %}Faculty — ResearchVault{% endblock %}
+{% block content %}
+
+<div class="page-header">
+  <div class="container">
+    <h1 class="page-title">Faculty Members</h1>
+    <p class="page-sub">Manage faculty profiles linked to publications.</p>
+  </div>
+</div>
+
+<div class="container">
+
+  <div class="card">
+    <h2 class="card-title">Add New Faculty</h2>
+    <form id="facultyForm" class="form-grid">
+      <div class="form-group">
+        <label>Full Name <span class="req">*</span></label>
+        <input type="text" id="fname" placeholder="Dr. Anita Sharma" required>
+      </div>
+      <div class="form-group">
+        <label>Email Address <span class="req">*</span></label>
+        <input type="email" id="femail" placeholder="anita.sharma@university.edu" required>
+      </div>
+      <div class="form-group">
+        <label>Designation <span class="req">*</span></label>
+        <select id="fdesig" required>
+          <option value="">Select designation…</option>
+          <option>Professor</option>
+          <option>Associate Professor</option>
+          <option>Assistant Professor</option>
+          <option>Lecturer</option>
+          <option>Research Fellow</option>
+          <option>Visiting Faculty</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Department <span class="req">*</span></label>
+        <input type="text" id="fdept" placeholder="Computer Science & Engineering" required>
+      </div>
+      <div class="form-group">
+        <label>Year of Joining <span class="req">*</span></label>
+        <input type="number" id="fyear" min="1950" max="2030" placeholder="2018" required>
+      </div>
+      <div class="form-group form-full">
+        <button type="submit" class="btn btn-primary">Add Faculty Member</button>
+      </div>
+    </form>
+  </div>
+
+  <div class="section-header">
+    <h2 class="section-title">All Faculty</h2>
+    <span class="badge" id="facultyCount">—</span>
+  </div>
+
+  <div id="facultyList" class="faculty-grid">
+    <div class="loading-state">Loading…</div>
+  </div>
+
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+async function loadFaculty() {
+  const list = await apiFetch('/api/faculty');
+  const container = document.getElementById('facultyList');
+  document.getElementById('facultyCount').textContent = list ? list.length + ' members' : '0 members';
+  if (list && list.length > 0) {
+    container.innerHTML = list.map(f => `
+      <div class="faculty-card">
+        <div class="faculty-avatar">${f.name.charAt(0)}</div>
+        <div class="faculty-info">
+          <h3>${f.name}</h3>
+          <p class="faculty-desig">${f.designation}</p>
+          <p class="faculty-dept">${f.department}</p>
+          <p class="faculty-meta">Joined ${f.year_of_joining} &bull; ${f.publication_count} publication${f.publication_count !== 1 ? 's' : ''}</p>
+          <p class="faculty-email">${f.email}</p>
+        </div>
+        <button class="btn-icon btn-danger" onclick="deleteFaculty(${f.id}, '${f.name}')" title="Delete">🗑</button>
+      </div>
+    `).join('');
+  } else {
+    container.innerHTML = '<div class="empty-state"><span>👤</span><p>No faculty added yet. Use the form above to add one.</p></div>';
+  }
+}
+
+document.getElementById('facultyForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const data = {
+    name: document.getElementById('fname').value.trim(),
+    email: document.getElementById('femail').value.trim(),
+    designation: document.getElementById('fdesig').value,
+    department: document.getElementById('fdept').value.trim(),
+    year_of_joining: document.getElementById('fyear').value
+  };
+  const res = await apiFetch('/api/faculty', { method: 'POST', body: JSON.stringify(data) });
+  if (res && res.success) {
+    showToast(res.message, 'success');
+    e.target.reset();
+    loadFaculty();
+  } else if (res && res.error) {
+    showToast(res.error, 'error');
+  }
+});
+
+async function deleteFaculty(id, name) {
+  if (!confirm(`Delete ${name} and all their publications? This cannot be undone.`)) return;
+  const res = await apiFetch(`/api/faculty/${id}`, { method: 'DELETE' });
+  if (res && res.success) {
+    showToast('Faculty member deleted.', 'success');
+    loadFaculty();
+  }
+}
+
+loadFaculty();
+</script>
+{% endblock %}
